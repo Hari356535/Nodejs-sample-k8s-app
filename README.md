@@ -183,13 +183,13 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Pull sub-chart tarballs
-helm dependency build ./charts/nodejs-sample-k8-app
+helm dependency build ./charts
 
 # Lint
-helm lint ./charts/nodejs-sample-k8-app
+helm lint ./charts
 
 # Deploy
-helm upgrade --install my-nodejs-app ./charts/nodejs-sample-k8-app \
+helm upgrade --install my-nodejs-app ./charts \
   --namespace default \
   --create-namespace \
   --set image.repository=<ECR_URI> \

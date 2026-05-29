@@ -17,18 +17,18 @@ pipeline {
     agent any
 
     environment {
-        // ── AWS / ECR / EKS ──────────────────────────────────────────────────
+        //  AWS / ECR / EKS 
         AWS_REGION        = 'us-east-1'            // ← change to your region
         AWS_ACCOUNT_ID    = '123456789012'          // ← change to your account ID
         ECR_REPOSITORY    = 'nodejs-sample-k8-app'
         EKS_CLUSTER_NAME  = 'production-eks-cluster'
 
-        // ── Helm ─────────────────────────────────────────────────────────────
+        //  Helm 
         HELM_RELEASE_NAME = 'my-nodejs-app'
-        HELM_CHART_PATH   = './charts/nodejs-sample-k8-app'
+        HELM_CHART_PATH   = './charts'
         HELM_NAMESPACE    = 'default'
 
-        // ── Derived values ───────────────────────────────────────────────────
+        //  Derived values 
         IMAGE_TAG         = "${BUILD_NUMBER}"
         ECR_REGISTRY      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_FULL        = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
@@ -43,15 +43,15 @@ pipeline {
 
     stages {
 
-        // ── 1. Checkout ───────────────────────────────────────────────────────
+        //  1. Checkout 
         stage('Checkout Codebase') {
             steps {
                 checkout scm
-                echo "✅ Checked out branch: ${env.GIT_BRANCH} @ ${env.GIT_COMMIT?.take(8)}"
+                echo "Checked out branch: ${env.GIT_BRANCH} @ ${env.GIT_COMMIT?.take(8)}"
             }
         }
 
-        // ── 2. Unit Tests ─────────────────────────────────────────────────────
+        //  2. Unit Tests 
         stage('Run Unit Tests') {
             steps {
                 sh 'npm ci'
@@ -59,12 +59,12 @@ pipeline {
             }
             post {
                 failure {
-                    echo '❌ Unit tests failed. Stopping pipeline.'
+                    echo 'Unit tests failed. Stopping pipeline.'
                 }
             }
         }
 
-        // ── 3. AWS Authentication ─────────────────────────────────────────────
+        //  3. AWS Authentication 
         stage('AWS Authentication') {
             steps {
                 withCredentials([[
@@ -92,29 +92,29 @@ pipeline {
             }
         }
 
-        // ── 4. Build Docker Image ─────────────────────────────────────────────
+        //  4. Build Docker Image 
         stage('Build Docker Image') {
             steps {
                 script {
                     sh "docker build -t ${IMAGE_FULL} ."
                     sh "docker tag ${IMAGE_FULL} ${IMAGE_LATEST}"
-                    echo "✅ Built: ${IMAGE_FULL}"
+                    echo "Built: ${IMAGE_FULL}"
                 }
             }
         }
 
-        // ── 5. Push to ECR ────────────────────────────────────────────────────
+        //  5. Push to ECR 
         stage('Push Image to ECR') {
             steps {
                 script {
                     sh "docker push ${IMAGE_FULL}"
                     sh "docker push ${IMAGE_LATEST}"
-                    echo "✅ Pushed to ECR: ${IMAGE_FULL}"
+                    echo "Pushed to ECR: ${IMAGE_FULL}"
                 }
             }
         }
 
-        // ── 6. Helm Dependencies ──────────────────────────────────────────────
+        //  6. Helm Dependencies 
         stage('Setup Helm Dependencies') {
             steps {
                 script {
@@ -126,19 +126,19 @@ pipeline {
                     // Download + lock sub-chart tarballs into charts/
                     sh "helm dependency build ${HELM_CHART_PATH}"
 
-                    echo "✅ Helm dependencies ready"
+                    echo "Helm dependencies ready"
                 }
             }
         }
 
-        // ── 7. Helm Lint ──────────────────────────────────────────────────────
+        //  7. Helm Lint 
         stage('Helm Lint') {
             steps {
                 sh "helm lint ${HELM_CHART_PATH} --set image.tag=${IMAGE_TAG}"
             }
         }
 
-        // ── 8. Deploy to EKS ──────────────────────────────────────────────────
+        //  8. Deploy to EKS 
         stage('Deploy to EKS') {
             steps {
                 script {
@@ -152,12 +152,12 @@ pipeline {
                           --timeout 5m                               \
                           --wait
                     """
-                    echo "✅ Helm release '${HELM_RELEASE_NAME}' deployed successfully"
+                    echo "Helm release '${HELM_RELEASE_NAME}' deployed successfully"
                 }
             }
         }
 
-        // ── 9. Smoke Test ─────────────────────────────────────────────────────
+        //  9. Smoke Test 
         stage('Smoke Test') {
             steps {
                 script {
@@ -167,13 +167,13 @@ pipeline {
                           -n ${HELM_NAMESPACE} \
                           --timeout=120s
                     """
-                    echo "✅ Rollout healthy"
+                    echo "Rollout healthy"
                 }
             }
         }
     }
 
-    // ── Post Actions ──────────────────────────────────────────────────────────
+    //  Post Actions 
     post {
         always {
             // Remove local Docker images to free agent disk space
@@ -181,22 +181,10 @@ pipeline {
             sh "docker rmi ${IMAGE_LATEST} || true"
         }
         success {
-            echo """
-╔══════════════════════════════════════════════╗
-║  ✅  Pipeline completed successfully!        ║
-║  Release : ${HELM_RELEASE_NAME}
-║  Image   : ${IMAGE_FULL}
-╚══════════════════════════════════════════════╝
-            """
+            echo "Successfull"
         }
         failure {
-            echo """
-╔══════════════════════════════════════════════╗
-║  ❌  Pipeline FAILED – check stage logs      ║
-╚══════════════════════════════════════════════╝
-            """
-            // Optional: add Slack / email notification here
-            // slackSend channel: '#deployments', message: "Build ${BUILD_NUMBER} FAILED"
+            echo "Failed"
         }
     }
 }

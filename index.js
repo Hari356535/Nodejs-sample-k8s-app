@@ -6,7 +6,7 @@ const client = require('prom-client');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Prometheus Metrics Setup ──────────────────────────────────────────────────
+//  Prometheus Metrics Setup 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
 
@@ -17,7 +17,7 @@ const httpRequestCounter = new client.Counter({
   registers: [register],
 });
 
-// ── Middleware ────────────────────────────────────────────────────────────────
+//  Middleware 
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -37,7 +37,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+//  Routes 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from nodejs-sample-k8-app!', status: 'ok' });
 });
@@ -52,7 +52,7 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
+//  Start 
 app.listen(PORT, () => {
   console.log(
     JSON.stringify({
