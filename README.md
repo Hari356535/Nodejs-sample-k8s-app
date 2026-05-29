@@ -24,7 +24,7 @@ graph LR
     B --> C([Test\nnpm test])
     C --> D([Build\ndocker build])
     D --> E([Push\nECR push])
-    E --> F([Deploy\nhelm upgrade])
+    E --> F([Deploy\nhelm upgrade \nEKS Deployment])
 
     style A fill:#f0f4ff,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
     style B fill:#f0f4ff,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
@@ -40,11 +40,11 @@ graph LR
 
 ```mermaid
 graph TD
-    Root["📦 nodejs-sample-k8-app"]
+    Root["nodejs-sample-k8-app"]
 
-    Root --> Config["⚙️ Chart config\nChart.yaml · values.yaml"]
-    Root --> T["📁 templates/"]
-    Root --> Deps["🔗 Chart.yaml dependencies"]
+    Root --> Config["Chart config\nChart.yaml · values.yaml"]
+    Root --> T["templates/"]
+    Root --> Deps["Chart.yaml dependencies"]
 
     T --> App["App manifests\ndeployment.yaml\nservice.yaml · ingress.yaml"]
     T --> Logging["Log shipping\nfluentbit-config.yaml\nfluentbit-daemonset.yaml"]
@@ -150,8 +150,6 @@ nodejs-docker-example/
 npm install
 npm start
 # App     → http://localhost:3000
-# Metrics → http://localhost:3000/metrics
-# Health  → http://localhost:3000/health
 ```
 
 ---
