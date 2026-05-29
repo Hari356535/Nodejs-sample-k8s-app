@@ -40,7 +40,7 @@ graph LR
 
 ```mermaid
 graph TD
-    Root["nodejs-sample-k8-app"]
+    Root["nodejs-sample-k8-app\charts"]
 
     Root --> Config["Chart config\nChart.yaml · values.yaml"]
     Root --> T["templates/"]
