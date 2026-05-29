@@ -1,6 +1,6 @@
 # nodejs-sample-k8-app
 
-Production-ready Node.js application deployed on **AWS EKS** via **Helm**, with full observability:
+Production-ready Node.js application deployed on AWS EKS via Helm, with a full observability stack baked into the chart.
 
 | Layer | Tool |
 |---|---|
@@ -14,24 +14,109 @@ Production-ready Node.js application deployed on **AWS EKS** via **Helm**, with 
 | Dashboards | Grafana (auto-provisioned) |
 | CI/CD | Jenkins (Groovy declarative pipeline) |
 
-## Pipeline Design Workflow
+---
+
+## CI/CD Pipeline
+
 ```mermaid
 graph LR
-    %% Styles and Themes
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
-    classDef phase fill:#eef2f7,stroke:#4a777a,stroke-width:2px,font-weight:bold;
-    classDef action fill:#ffffff,stroke:#777,stroke-width:1px,stroke-dasharray: 3 3;
+    A([Checkout\ngit pull]) --> B([Install\nnpm install])
+    B --> C([Test\nnpm test])
+    C --> D([Build\ndocker build])
+    D --> E([Push\nECR push])
+    E --> F([Deploy\nhelm upgrade])
 
-    subgraph Jenkins [ Jenkins Declarative Automation Pipeline Pipeline ]
-        A[Checkout<br/><i>git pull</i>] --> B[Init<br/><i>npm install</i>]
-        B --> C[Test<br/><i>npm test</i>]
-        C --> D[Build<br/><i>docker build</i>]
-        D --> E[Push<br/><i>ECR push</i>]
-        E --> F[Deploy<br/><i>helm upgrade</i>]
+    style A fill:#f0f4ff,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
+    style B fill:#f0f4ff,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
+    style C fill:#f0f4ff,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
+    style D fill:#fff4e6,stroke:#e67e00,stroke-width:1.5px,color:#1a1a2e
+    style E fill:#fff4e6,stroke:#e67e00,stroke-width:1.5px,color:#1a1a2e
+    style F fill:#e6f7ee,stroke:#27ae60,stroke-width:2px,color:#1a1a2e
+```
+
+---
+
+## Helm Chart Structure
+
+```mermaid
+graph TD
+    Root["📦 nodejs-sample-k8-app"]
+
+    Root --> Config["⚙️ Chart config\nChart.yaml · values.yaml"]
+    Root --> T["📁 templates/"]
+    Root --> Deps["🔗 Chart.yaml dependencies"]
+
+    T --> App["App manifests\ndeployment.yaml\nservice.yaml · ingress.yaml"]
+    T --> Logging["Log shipping\nfluentbit-config.yaml\nfluentbit-daemonset.yaml"]
+    T --> Monitoring["Dashboards\ngrafana-dashboard.yaml\nNOTES.txt"]
+
+    Deps --> ES["elastic/elasticsearch\nStatefulSet + PVC"]
+    Deps --> KB["elastic/kibana\nWeb UI :5601"]
+    Deps --> KPS["prometheus-community/\nkube-prometheus-stack\nPrometheus + Grafana"]
+
+    App -. "port named api-web\nPrometheus annotations" .-> Logging
+    Logging -. "ships logs to" .-> ES
+    KPS -. "auto-provisions\ndashboard + datasource" .-> Monitoring
+
+    style Root fill:#e8f0fe,stroke:#4a6cf7,stroke-width:2px,color:#1a1a2e
+    style Config fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,color:#1a1a2e
+    style T fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,color:#1a1a2e
+    style Deps fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,color:#1a1a2e
+    style App fill:#e6f7ee,stroke:#27ae60,stroke-width:1.5px,color:#1a1a2e
+    style Logging fill:#fff4e6,stroke:#e67e00,stroke-width:1.5px,color:#1a1a2e
+    style Monitoring fill:#fdf0ff,stroke:#9b59b6,stroke-width:1.5px,color:#1a1a2e
+    style ES fill:#fdf0ff,stroke:#9b59b6,stroke-width:1px,color:#1a1a2e
+    style KB fill:#fdf0ff,stroke:#9b59b6,stroke-width:1px,color:#1a1a2e
+    style KPS fill:#fdf0ff,stroke:#9b59b6,stroke-width:1px,color:#1a1a2e
+```
+
+---
+
+## Observability Data Flow
+
+```mermaid
+graph TD
+    subgraph pod["EKS Pod"]
+        App["Node.js app"]
+        Stdout["stdout\nJSON logs"]
+        Metrics["/metrics\nprom-client"]
+        App --> Stdout
+        App --> Metrics
     end
 
-    class Jenkins phase;
-    class A,B,C,D,E,F action;
+    subgraph logging["Log pipeline"]
+        FB["Fluent Bit DaemonSet\ntails /var/log/containers/*\nadds k8s metadata"]
+        ESC["Elasticsearch\nindex: nodejs-logs-*"]
+        Kibana["Kibana\nport-forward :5601"]
+        FB -->|enriched logs| ESC
+        ESC --> Kibana
+    end
+
+    subgraph metrics["Metrics pipeline"]
+        Prom["Prometheus\nscrapes via pod annotations"]
+        Grafana["Grafana\nport-forward :3000"]
+        Prom --> Grafana
+    end
+
+    Stdout -->|captured by node volumes| FB
+    Metrics -->|scraped on port 3000| Prom
+    ESC -. "Elasticsearch\ndata source" .-> Grafana
+
+    style pod fill:#e6f7ee,stroke:#27ae60,stroke-width:1.5px,color:#1a1a2e
+    style logging fill:#fff4e6,stroke:#e67e00,stroke-width:1.5px,color:#1a1a2e
+    style metrics fill:#e8f0fe,stroke:#4a6cf7,stroke-width:1.5px,color:#1a1a2e
+    style App fill:#c8f0d8,stroke:#27ae60,stroke-width:1px,color:#1a1a2e
+    style Stdout fill:#c8f0d8,stroke:#27ae60,stroke-width:1px,color:#1a1a2e
+    style Metrics fill:#c8f0d8,stroke:#27ae60,stroke-width:1px,color:#1a1a2e
+    style FB fill:#ffe5b4,stroke:#e67e00,stroke-width:1px,color:#1a1a2e
+    style ESC fill:#ffe5b4,stroke:#e67e00,stroke-width:1px,color:#1a1a2e
+    style Kibana fill:#ffe5b4,stroke:#e67e00,stroke-width:1px,color:#1a1a2e
+    style Prom fill:#c5d8fd,stroke:#4a6cf7,stroke-width:1px,color:#1a1a2e
+    style Grafana fill:#c5d8fd,stroke:#4a6cf7,stroke-width:1px,color:#1a1a2e
+```
+
+> Grafana has two data sources out of the box: Prometheus for metrics and Elasticsearch for logs. No manual setup needed after `helm upgrade --install`.
+
 ---
 
 ## Directory Structure
@@ -64,9 +149,9 @@ nodejs-docker-example/
 ```bash
 npm install
 npm start
-# App → http://localhost:3000
+# App     → http://localhost:3000
 # Metrics → http://localhost:3000/metrics
-# Health → http://localhost:3000/health
+# Health  → http://localhost:3000/health
 ```
 
 ---
@@ -95,18 +180,18 @@ npm start
 ## Manual Helm Deployment
 
 ```bash
-# 1. Add Helm repos
+# Add repos
 helm repo add elastic              https://helm.elastic.co
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-# 2. Download sub-chart tarballs
+# Pull sub-chart tarballs
 helm dependency build ./charts/nodejs-sample-k8-app
 
-# 3. Lint
+# Lint
 helm lint ./charts/nodejs-sample-k8-app
 
-# 4. Deploy
+# Deploy
 helm upgrade --install my-nodejs-app ./charts/nodejs-sample-k8-app \
   --namespace default \
   --create-namespace \
@@ -119,51 +204,24 @@ helm upgrade --install my-nodejs-app ./charts/nodejs-sample-k8-app \
 
 ## Observability
 
-### Logs → ELK
-
-```
-Node.js stdout (JSON)
-    │
-    ▼  (tailed by)
-Fluent Bit DaemonSet
-    │  enriches with k8s metadata
-    ▼
-Elasticsearch  (index: nodejs-logs-YYYY.MM.DD)
-    │
-    ▼
-Kibana  →  port-forward 5601
-```
-
-**Kibana index pattern:** `nodejs-logs-*`  |  **Time field:** `@timestamp`
-
-### Metrics → Grafana
-
-```
-Node.js /metrics  (prom-client)
-    │
-    ▼  (scraped by)
-Prometheus  (via pod annotations in deployment.yaml)
-    │
-    ▼
-Grafana dashboard  →  port-forward 3000
-```
-
-### Port-forward shortcuts
+### Accessing the UIs
 
 ```bash
-# Kibana
+# Kibana (index pattern: nodejs-logs-*)
 kubectl port-forward svc/my-nodejs-app-kibana 5601:5601
 
-# Grafana  (admin / changeme-in-production)
+# Grafana (admin / changeme-in-production)
 kubectl port-forward svc/my-nodejs-app-kube-prometheus-stack-grafana 3000:80
 ```
+
+Kibana index pattern: `nodejs-logs-*` | Time field: `@timestamp`
 
 ---
 
 ## Key Design Decisions
 
-- **Named port `api-web`**: The container port in `deployment.yaml` is named `api-web`; `service.yaml` references it via `targetPort: api-web` for loose coupling.
-- **Fluent Bit as DaemonSet**: Runs on every EKS worker node; no sidecar overhead per pod.
-- **Grafana auto-provisioning**: Elasticsearch data source and the Node.js dashboard are pre-configured in `values.yaml` — zero manual UI clicks.
-- **`--atomic` Helm flag**: Automatically rolls back on failure, keeping the cluster in a known-good state.
-- **Multi-stage Dockerfile**: Separates build and runtime, runs as a non-root user.
+- **Named port `api-web`** — the container port in `deployment.yaml` is named `api-web`; `service.yaml` references it via `targetPort: api-web` so service routing isn't coupled to a hardcoded port number.
+- **Fluent Bit as DaemonSet** — runs on every EKS worker node so there's no per-pod sidecar overhead. Logs are captured at the host level from `/var/log/containers/*`.
+- **Grafana auto-provisioning** — both the Elasticsearch data source and the Node.js metrics dashboard are declared in `values.yaml`, so the Grafana UI is ready to use immediately after deploy with no manual configuration.
+- **`--atomic` flag** — if any resource in the Helm release fails to reach a ready state, Helm automatically rolls back to the previous release, keeping the cluster in a known-good state.
+- **Multi-stage Dockerfile** — the build stage installs dependencies; the runtime stage copies only the production artifacts and runs as a non-root user, keeping the image lean and reducing attack surface.
