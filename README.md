@@ -16,7 +16,7 @@ Production-ready Node.js application deployed on **AWS EKS** via **Helm**, with 
 
 ## Pipeline Design Workflow
 ```mermaid
-[graph LR
+graph LR
     %% Styles and Themes
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
     classDef phase fill:#eef2f7,stroke:#4a777a,stroke-width:2px,font-weight:bold;
@@ -31,7 +31,7 @@ Production-ready Node.js application deployed on **AWS EKS** via **Helm**, with 
     end
 
     class Jenkins phase;
-    class A,B,C,D,E,F action;]
+    class A,B,C,D,E,F action;
 ---
 
 ## Directory Structure
