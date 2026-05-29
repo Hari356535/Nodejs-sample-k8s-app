@@ -124,7 +124,6 @@ graph TD
 ```
 nodejs-docker-example/
 ├── charts/
-│   └── nodejs-sample-k8-app/
 │       ├── Chart.yaml                      # App + ELK + Grafana dependencies
 │       ├── values.yaml                     # All configuration
 │       └── templates/
