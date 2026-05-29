@@ -14,6 +14,24 @@ Production-ready Node.js application deployed on **AWS EKS** via **Helm**, with 
 | Dashboards | Grafana (auto-provisioned) |
 | CI/CD | Jenkins (Groovy declarative pipeline) |
 
+## Pipeline Design Workflow
+```mermaid
+[graph LR
+    %% Styles and Themes
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    classDef phase fill:#eef2f7,stroke:#4a777a,stroke-width:2px,font-weight:bold;
+    classDef action fill:#ffffff,stroke:#777,stroke-width:1px,stroke-dasharray: 3 3;
+
+    subgraph Jenkins [ Jenkins Declarative Automation Pipeline Pipeline ]
+        A[Checkout<br/><i>git pull</i>] --> B[Init<br/><i>npm install</i>]
+        B --> C[Test<br/><i>npm test</i>]
+        C --> D[Build<br/><i>docker build</i>]
+        D --> E[Push<br/><i>ECR push</i>]
+        E --> F[Deploy<br/><i>helm upgrade</i>]
+    end
+
+    class Jenkins phase;
+    class A,B,C,D,E,F action;]
 ---
 
 ## Directory Structure
