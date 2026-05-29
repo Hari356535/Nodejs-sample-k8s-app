@@ -1,5 +1,5 @@
 {{- if .Values.fluentbit.enabled -}}
-# ── ServiceAccount ────────────────────────────────────────────────────────────
+# ServiceAccount
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -8,7 +8,7 @@ metadata:
     app: fluent-bit
     release: {{ .Release.Name }}
 ---
-# ── ClusterRole: read pods & namespaces for metadata enrichment ───────────────
+# ClusterRole: read pods & namespaces for metadata enrichment
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -21,7 +21,7 @@ rules:
     resources: ["namespaces", "pods", "pods/logs"]
     verbs: ["get", "list", "watch"]
 ---
-# ── ClusterRoleBinding ────────────────────────────────────────────────────────
+# ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -38,7 +38,7 @@ subjects:
     name: {{ .Release.Name }}-fluent-bit-sa
     namespace: {{ .Release.Namespace }}
 ---
-# ── DaemonSet: one Fluent Bit pod per EKS worker node ────────────────────────
+# DaemonSet: one Fluent Bit pod per EKS worker node
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

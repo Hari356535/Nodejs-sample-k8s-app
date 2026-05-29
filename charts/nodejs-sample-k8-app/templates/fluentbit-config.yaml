@@ -7,7 +7,7 @@ metadata:
     app: fluent-bit
     release: {{ .Release.Name }}
 data:
-  # ── Main Fluent Bit pipeline config ─────────────────────────────────────────
+  # Main Fluent Bit pipeline config
   fluent-bit.conf: |
     [SERVICE]
         Flush           1
@@ -63,7 +63,7 @@ data:
         tls               Off
         tls.verify        Off
 
-  # ── Parsers ──────────────────────────────────────────────────────────────────
+  # Parsers
   parsers.conf: |
     [PARSER]
         Name        docker
