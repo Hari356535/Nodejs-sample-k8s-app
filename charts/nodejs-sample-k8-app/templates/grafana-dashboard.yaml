@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-dashboard
+  labels:
+    grafana_dashboard: "1"
+    release: {{ .Release.Name }}
+data:
+  nodejs-app-dashboard.json: |
+    {
+      "title": "Node.js App – Overview",
+      "uid": "nodejs-app-overview",
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "10s",
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Total HTTP Requests",
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "targets": [
+            {
+              "expr": "sum(http_requests_total{job=~\".*nodejs.*\"})",
+              "legendFormat": "Requests"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Request Rate (req/s)",
+          "gridPos": { "x": 6, "y": 0, "w": 18, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[1m])) by (route, status)",
+              "legendFormat": "{{route}} – {{status}}"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Process Memory (RSS)",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "process_resident_memory_bytes{job=~\".*nodejs.*\"}",
+              "legendFormat": "RSS bytes"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Active Handles / Requests",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "nodejs_active_handles_total{job=~\".*nodejs.*\"}",
+              "legendFormat": "Active handles"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "type": "logs",
+          "title": "Application Logs (Elasticsearch)",
+          "gridPos": { "x": 0, "y": 16, "w": 24, "h": 10 },
+          "datasource": "Elasticsearch-Logs",
+          "targets": [
+            {
+              "query": "kubernetes.labels.app: {{ .Release.Name }}",
+              "timeField": "@timestamp"
+            }
+          ]
+        }
+      ],
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {}
+    }

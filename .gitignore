@@ -1,0 +1,5 @@
+node_modules/
+charts/nodejs-sample-k8-app/charts/
+charts/nodejs-sample-k8-app/Chart.lock
+.env
+*.log

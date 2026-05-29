@@ -1,0 +1,17 @@
+{
+  "name": "nodejs-sample-k8-app",
+  "version": "1.0.0",
+  "description": "Node.js sample app for EKS deployment with ELK + Grafana observability",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "prom-client": "^15.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,39 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║          nodejs-sample-k8-app  –  Deployment Notes                  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+✅  Release  : {{ .Release.Name }}
+✅  Namespace: {{ .Release.Namespace }}
+✅  Image    : {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+► Application
+  The app is exposed via an AWS ALB (check Ingress for the external URL):
+
+    kubectl get ingress {{ .Release.Name }}-ingress -n {{ .Release.Namespace }}
+
+► Kibana  (log explorer)
+  Port-forward Kibana to your local machine:
+
+    kubectl port-forward svc/{{ .Release.Name }}-kibana 5601:5601 -n {{ .Release.Namespace }}
+    open http://localhost:5601
+
+  Logs are indexed under the pattern:  nodejs-logs-*
+  Time field: @timestamp
+
+► Grafana  (metrics + log dashboards)
+  Port-forward Grafana to your local machine:
+
+    kubectl port-forward svc/{{ .Release.Name }}-kube-prometheus-stack-grafana 3000:80 -n {{ .Release.Namespace }}
+    open http://localhost:3000
+
+  Default credentials → admin / changeme-in-production
+  Dashboard: Dashboards ▶ Node.js App ▶ "Node.js App – Overview"
+
+► Fluent Bit
+  Check shipping status:
+
+    kubectl logs -l app=fluent-bit -n {{ .Release.Namespace }} --tail=50
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

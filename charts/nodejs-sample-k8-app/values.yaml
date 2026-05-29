@@ -1,0 +1,134 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# nodejs-sample-k8-app – Helm Values
+# Replace <AWS_ACCOUNT_ID> and <REGION> before deploying.
+# ══════════════════════════════════════════════════════════════════════════════
+
+replicaCount: 2
+
+image:
+  repository: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/nodejs-sample-k8-app
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# ── Liveness / Readiness probes ───────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /health
+    port: api-web
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: api-web
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# ── Fluent Bit (log shipper) ──────────────────────────────────────────────────
+fluentbit:
+  enabled: true
+  image: amazon/aws-fluent-bit:2.32.2
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Sub-chart (dependency) configuration
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Elasticsearch ─────────────────────────────────────────────────────────────
+elasticsearch:
+  enabled: true
+  replicas: 1
+  minimumMasterNodes: 1
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "2Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  volumeClaimTemplate:
+    accessModes: ["ReadWriteOnce"]
+    resources:
+      requests:
+        storage: 10Gi
+  # Disable xpack security for a dev/staging setup; enable for production
+  esConfig:
+    elasticsearch.yml: |
+      xpack.security.enabled: false
+
+# ── Kibana ────────────────────────────────────────────────────────────────────
+kibana:
+  enabled: true
+  service:
+    type: ClusterIP
+    port: 5601
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# ── kube-prometheus-stack (Prometheus + Grafana) ──────────────────────────────
+kube-prometheus-stack:
+  enabled: true
+
+  prometheus:
+    prometheusSpec:
+      # Discover PodMonitors / ServiceMonitors cluster-wide (not only in the
+      # same namespace as the Helm release)
+      podMonitorSelectorNilUsesHelmValues: false
+      serviceMonitorSelectorNilUsesHelmValues: false
+
+  grafana:
+    enabled: true
+    adminPassword: "changeme-in-production"
+    service:
+      type: ClusterIP
+      port: 80
+    # Pre-provision Elasticsearch as a data source so logs appear immediately
+    additionalDataSources:
+      - name: Elasticsearch-Logs
+        type: elasticsearch
+        access: proxy
+        url: http://my-nodejs-app-elasticsearch-master:9200
+        jsonData:
+          timeField: "@timestamp"
+          esVersion: "7.0.0"
+          logMessageField: log
+          logLevelField: level
+    # Pre-provision a Node.js application dashboard
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: nodejs-app
+            orgId: 1
+            folder: "Node.js App"
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/nodejs-app
+    dashboardsConfigMaps:
+      nodejs-app: "my-nodejs-app-grafana-dashboard"

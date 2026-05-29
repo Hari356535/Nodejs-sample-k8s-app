@@ -1,0 +1,30 @@
+apiVersion: v2
+name: nodejs-sample-k8-app
+description: >
+  A unified Helm chart for nodejs-sample-k8-app with integrated ELK logging
+  and Grafana / Prometheus observability on AWS EKS.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+maintainers:
+  - name: platform-team
+    email: platform@example.com
+
+dependencies:
+  # ── Logging stack (ELK) ─────────────────────────────────────────────────────
+  - name: elasticsearch
+    version: "7.17.3"
+    repository: https://helm.elastic.co
+    condition: elasticsearch.enabled
+
+  - name: kibana
+    version: "7.17.3"
+    repository: https://helm.elastic.co
+    condition: kibana.enabled
+
+  # ── Metrics / Dashboards stack ──────────────────────────────────────────────
+  - name: kube-prometheus-stack
+    version: "58.2.2"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: kube-prometheus-stack.enabled
