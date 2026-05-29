@@ -29,10 +29,10 @@ pipeline {
         HELM_NAMESPACE    = 'default'
 
         //  Derived values 
-        IMAGE_TAG         = "${BUILD_NUMBER}"
+        IMAGE_TAG         = "latest"
         ECR_REGISTRY      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_FULL        = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-        IMAGE_LATEST      = "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+        IMAGE_LATEST      = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
     }
 
     options {

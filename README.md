@@ -193,7 +193,7 @@ helm upgrade --install my-nodejs-app ./charts \
   --namespace default \
   --create-namespace \
   --set image.repository=<ECR_URI> \
-  --set image.tag=<BUILD_NUMBER> \
+  --set image.tag=latest \
   --atomic --wait
 ```
 
